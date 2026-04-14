@@ -1,0 +1,154 @@
+spring:
+  application:
+    name: SmartLife Hub
+
+  # ===== JACKSON =====
+  jackson:
+    deserialization:
+      fail-on-null-for-primitives: false
+
+  # ===== DATASOURCE =====
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartlife
+    username: smartlife
+    password: smartlife123
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  # ===== JPA =====
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 50
+
+  # ===== REDIS =====
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis123
+      lettuce:
+        pool:
+          max-active: 10
+          min-idle: 2
+
+  # ===== ELASTICSEARCH =====
+    elasticsearch:
+      uris: http://localhost:9200
+
+  # ===== KAFKA =====
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: smartlife-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.smartlife.*"
+
+  # ===== CACHE =====
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000  # 1 hour in ms
+
+  # ===== FILE UPLOAD =====
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  # ===== VIRTUAL THREADS (Java 21) =====
+  threads:
+    virtual:
+      enabled: true
+
+# ===== SERVER =====
+server:
+  port: 9090
+  compression:
+    enabled: true
+
+# ===== JWT =====
+jwt:
+  secret: "smartlife-super-secret-jwt-key-must-be-at-least-256-bits-long-for-HS256"
+  expiration-ms: 86400000        # 24 hours
+  refresh-expiration-ms: 604800000 # 7 days
+
+# ===== FILE STORAGE =====
+smartlife:
+  storage:
+    upload-dir: ./uploads
+    max-file-size-mb: 50
+  ocr:
+    tessdata-path: ./tessdata
+    language: eng
+  ml:
+    models-dir: ./ml-models
+  kafka:
+    topics:
+      document-processed: smartlife.document.processed
+      expense-created: smartlife.expense.created
+      reminder-triggered: smartlife.reminder.triggered
+      health-alert: smartlife.health.alert
+
+# ===== QUARTZ SCHEDULER =====
+spring.quartz:
+  job-store-type: jdbc
+  jdbc:
+    initialize-schema: always
+  properties:
+    org.quartz.scheduler.instanceName: SmartLifeScheduler
+    org.quartz.threadPool.threadCount: 5
+
+# ===== ACTUATOR =====
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ===== LOGGING =====
+logging:
+  level:
+    com.smartlife: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# ===== TEST PROFILE =====
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:tc:postgresql:16:///smartlife
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}

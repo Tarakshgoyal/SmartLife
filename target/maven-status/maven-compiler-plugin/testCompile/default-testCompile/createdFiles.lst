@@ -1,0 +1,6 @@
+com\smartlife\document\DocumentClassificationServiceTest.class
+com\smartlife\expense\ReceiptScanningServiceTest.class
+com\smartlife\SmartLifeApplicationTests.class
+com\smartlife\auth\AuthServiceIntegrationTest.class
+com\smartlife\expense\AnomalyDetectionServiceTest.class
+com\smartlife\health\HealthPatternAnalyzerTest.class
