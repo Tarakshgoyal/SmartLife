@@ -6,6 +6,9 @@ import com.smartlife.expense.dto.*;
 import com.smartlife.expense.model.ExpenseCategory;
 import com.smartlife.expense.service.ExpenseService;
 import com.smartlife.expense.service.SpendingPredictionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,11 +27,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/expenses")
 @RequiredArgsConstructor
+@Tag(name = "Expenses", description = "Expense tracking, budgets, anomaly detection, and spending predictions")
 public class ExpenseController {
 
     private final ExpenseService expenseService;
     private final SpendingPredictionService predictionService;
 
+    @Operation(summary = "Create a new expense")
     @PostMapping
     public ResponseEntity<ApiResponse<ExpenseDto>> create(
             @Valid @RequestBody ExpenseCreateRequest request,
@@ -37,6 +42,7 @@ public class ExpenseController {
                 .body(ApiResponse.success(expenseService.createExpense(request, user), "Expense added"));
     }
 
+    @Operation(summary = "List expenses (optionally filtered by category)")
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ExpenseDto>>> getAll(
             @RequestParam(required = false) ExpenseCategory category,
@@ -46,14 +52,16 @@ public class ExpenseController {
                 expenseService.getUserExpenses(user.getId(), category, pageable)));
     }
 
+    @Operation(summary = "Get monthly expense summary", description = "monthYear format: yyyy-MM (e.g. 2025-03)")
     @GetMapping("/summary/{monthYear}")
     public ResponseEntity<ApiResponse<ExpenseSummaryDto>> getSummary(
-            @PathVariable String monthYear,
+            @Parameter(description = "Month in yyyy-MM format") @PathVariable String monthYear,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.success(
                 expenseService.getMonthlySummary(user.getId(), monthYear)));
     }
 
+    @Operation(summary = "Get current month expense summary")
     @GetMapping("/summary/current")
     public ResponseEntity<ApiResponse<ExpenseSummaryDto>> getCurrentMonthSummary(
             @AuthenticationPrincipal User user) {
@@ -62,6 +70,7 @@ public class ExpenseController {
                 expenseService.getMonthlySummary(user.getId(), current)));
     }
 
+    @Operation(summary = "Get ML-detected anomalous expenses")
     @GetMapping("/anomalies")
     public ResponseEntity<ApiResponse<List<ExpenseDto>>> getAnomalies(
             @AuthenticationPrincipal User user) {
@@ -69,6 +78,7 @@ public class ExpenseController {
                 "Anomalous expenses detected"));
     }
 
+    @Operation(summary = "Delete an expense")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable UUID id,
@@ -77,6 +87,7 @@ public class ExpenseController {
         return ResponseEntity.ok(ApiResponse.success(null, "Expense deleted"));
     }
 
+    @Operation(summary = "Predict next month's spending using ML model")
     @GetMapping("/predict")
     public ResponseEntity<ApiResponse<SpendingPredictionDto>> predictNextMonth(
             @AuthenticationPrincipal User user) {
@@ -86,6 +97,7 @@ public class ExpenseController {
     }
 
     // ===== BUDGET ENDPOINTS =====
+    @Operation(summary = "Set or update a monthly budget for a category")
     @PostMapping("/budgets")
     public ResponseEntity<ApiResponse<BudgetDto>> setBudget(
             @Valid @RequestBody BudgetCreateRequest request,
@@ -94,6 +106,7 @@ public class ExpenseController {
                 .body(ApiResponse.success(expenseService.setBudget(request, user), "Budget set"));
     }
 
+    @Operation(summary = "Get budgets for a specific month", description = "monthYear format: yyyy-MM")
     @GetMapping("/budgets/{monthYear}")
     public ResponseEntity<ApiResponse<List<BudgetDto>>> getBudgets(
             @PathVariable String monthYear,

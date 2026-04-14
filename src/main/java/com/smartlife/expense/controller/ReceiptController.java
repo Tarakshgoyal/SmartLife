@@ -7,6 +7,8 @@ import com.smartlife.expense.dto.ExpenseDto;
 import com.smartlife.expense.dto.ReceiptScanResultDto;
 import com.smartlife.expense.service.ExpenseService;
 import com.smartlife.expense.service.ReceiptScanningService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,6 +23,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/v1/expenses/receipts")
 @RequiredArgsConstructor
+@Tag(name = "Receipts", description = "OCR-based receipt scanning and automatic expense creation")
 public class ReceiptController {
 
     private final ReceiptScanningService receiptScanningService;
@@ -30,6 +33,7 @@ public class ReceiptController {
      * Scan a receipt image/PDF and return extracted data for user review.
      * The client can then confirm and POST to /expenses with the pre-filled fields.
      */
+    @Operation(summary = "Scan a receipt image/PDF and return extracted data")
     @PostMapping(value = "/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ReceiptScanResultDto>> scan(
             @RequestPart("file") MultipartFile file,
@@ -42,6 +46,7 @@ public class ReceiptController {
     /**
      * Scan receipt AND immediately create the expense record.
      */
+    @Operation(summary = "Scan receipt and immediately create an expense record")
     @PostMapping(value = "/scan-and-save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ExpenseDto>> scanAndSave(
             @RequestPart("file") MultipartFile file,

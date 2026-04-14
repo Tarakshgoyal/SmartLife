@@ -31,7 +31,7 @@ import org.springframework.context.annotation.Configuration;
                 contact = @Contact(name = "SmartLife Hub", email = "support@smartlife.app")
         ),
         servers = {
-                @Server(url = "http://localhost:8080", description = "Local"),
+                @Server(url = "http://localhost:9090", description = "Local"),
                 @Server(url = "https://api.smartlife.app", description = "Production")
         },
         security = @SecurityRequirement(name = "bearerAuth")

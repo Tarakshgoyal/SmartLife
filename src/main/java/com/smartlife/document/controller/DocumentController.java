@@ -8,6 +8,9 @@ import com.smartlife.document.dto.MedicalReportDto;
 import com.smartlife.document.model.DocumentType;
 import com.smartlife.document.service.DocumentService;
 import com.smartlife.document.service.MedicalDocumentParser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,11 +29,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/documents")
 @RequiredArgsConstructor
+@Tag(name = "Documents", description = "Document upload, OCR, ML classification, search, and expiry tracking")
 public class DocumentController {
 
     private final DocumentService documentService;
     private final MedicalDocumentParser medicalDocumentParser;
 
+    @Operation(summary = "Upload a document (PDF/image) — triggers OCR and ML classification")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentUploadResponse>> upload(
             @RequestPart("file") MultipartFile file,
@@ -43,6 +48,7 @@ public class DocumentController {
                 .body(ApiResponse.success(response, "Document uploaded successfully"));
     }
 
+    @Operation(summary = "List documents (optionally filtered by type)")
     @GetMapping
     public ResponseEntity<ApiResponse<Page<DocumentDto>>> getDocuments(
             @RequestParam(required = false) DocumentType type,
@@ -53,6 +59,7 @@ public class DocumentController {
         return ResponseEntity.ok(ApiResponse.success(docs));
     }
 
+    @Operation(summary = "Get a document by ID")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DocumentDto>> getDocument(
             @PathVariable UUID id,
@@ -61,6 +68,7 @@ public class DocumentController {
         return ResponseEntity.ok(ApiResponse.success(documentService.getDocument(id, user.getId())));
     }
 
+    @Operation(summary = "Full-text search documents via Elasticsearch (use ?q= or ?query=)")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<DocumentDto>>> search(
             @RequestParam(name = "q", required = false) String q,
@@ -81,6 +89,7 @@ public class DocumentController {
         }
     }
 
+    @Operation(summary = "Get documents expiring within N days")
     @GetMapping("/expiring")
     public ResponseEntity<ApiResponse<List<DocumentDto>>> getExpiring(
             @RequestParam(defaultValue = "30") int daysAhead,
@@ -95,6 +104,7 @@ public class DocumentController {
      * Parse a stored medical/lab report document and return extracted lab values.
      * The document must already be uploaded and OCR-processed.
      */
+    @Operation(summary = "Parse an OCR-processed medical/lab report and extract lab values")
     @GetMapping("/{id}/medical-parse")
     public ResponseEntity<ApiResponse<MedicalReportDto>> parseMedical(
             @PathVariable UUID id,
@@ -108,6 +118,7 @@ public class DocumentController {
         return ResponseEntity.ok(ApiResponse.success(report, "Medical report parsed"));
     }
 
+    @Operation(summary = "Delete a document")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable UUID id,
