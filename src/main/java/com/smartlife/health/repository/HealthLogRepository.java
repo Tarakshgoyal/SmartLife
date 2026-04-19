@@ -41,4 +41,7 @@ public interface HealthLogRepository extends JpaRepository<HealthLog, UUID> {
     Optional<HealthLog> findByIdAndUserId(UUID id, UUID userId);
 
     long countByUserId(UUID userId);
+
+    // GDPR: bulk deletion
+    void deleteByUserId(UUID userId);
 }

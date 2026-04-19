@@ -1,10 +1,13 @@
 package com.smartlife.expense.service;
 
+import com.smartlife.config.OllamaService;
 import com.smartlife.expense.model.Expense;
 import com.smartlife.expense.model.ExpenseCategory;
 import com.smartlife.expense.repository.ExpenseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,8 +27,12 @@ public class AnomalyDetectionService {
 
     private final ExpenseRepository expenseRepository;
 
+    @Lazy
+    @Autowired
+    private OllamaService ollamaService;
+
     private static final double ANOMALY_THRESHOLD_MULTIPLIER = 2.5;
-    private static final double MINIMUM_ANOMALY_AMOUNT = 500.0; // Skip tiny amounts
+    private static final double MINIMUM_ANOMALY_AMOUNT = 500.0;
 
     public AnomalyResult checkAnomaly(Expense expense) {
         if (expense.getAmount().doubleValue() < MINIMUM_ANOMALY_AMOUNT) {
@@ -45,14 +52,28 @@ public class AnomalyDetectionService {
         boolean isAnomaly = expense.getAmount().doubleValue() > threshold;
 
         if (isAnomaly) {
-            String reason = String.format(
-                    "Amount ₹%.2f is %.1fx above your average of ₹%.2f for %s",
+            String baseReason = String.format(
+                    "Amount Rs.%.2f is %.1fx above your average of Rs.%.2f for %s",
                     expense.getAmount().doubleValue(),
                     expense.getAmount().doubleValue() / avg.doubleValue(),
                     avg.doubleValue(),
                     formatCategory(expense.getCategory())
             );
-            log.info("Anomaly detected for user {}: {}", expense.getUser().getId(), reason);
+            // ── Llama 3.2 enriched explanation ──────────────────────────────
+            String reason = baseReason;
+            try {
+                String aiExplanation = ollamaService.generate(
+                    "You are a personal finance advisor. Explain an anomalous expense in 1-2 sentences and suggest one action. Be brief and direct.",
+                    "Expense: " + expense.getDescription() + " | Category: " + formatCategory(expense.getCategory()) +
+                    " | Amount: Rs." + expense.getAmount() +
+                    " | Average for this category: Rs." + String.format("%.2f", avg.doubleValue()) +
+                    " | This is " + String.format("%.1f", expense.getAmount().doubleValue() / avg.doubleValue()) + "x the average."
+                );
+                if (aiExplanation != null) reason = baseReason + " — " + aiExplanation;
+            } catch (Exception e) {
+                log.debug("AI anomaly explanation skipped: {}", e.getMessage());
+            }
+            log.info("Anomaly detected for user {}: {}", expense.getUser().getId(), baseReason);
             return new AnomalyResult(true, reason);
         }
 

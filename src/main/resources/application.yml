@@ -100,6 +100,26 @@ smartlife:
     language: eng
   ml:
     models-dir: ./ml-models
+  # ── Ollama / Llama 3.2 ──────────────────────────────────────────────────────
+  ollama:
+    base-url: http://localhost:11434
+    model: llama3.2:3b
+    # Set to false to disable AI features globally (use rule-based fallbacks only)
+    enabled: true
+
+  # ── Data Security ────────────────────────────────────────────────────────────
+  encryption:
+    # IMPORTANT: Set this to a stable 32-byte Base64-encoded AES-256 key in production.
+    # Generate with: openssl rand -base64 32
+    # If not set, an ephemeral key is generated on startup (data is lost on restart).
+    # In production, load from environment variable: SMARTLIFE_ENCRYPTION_MASTER_KEY
+    master-key: "ipa2obaUEJQTPQjH3Si52cEr2C1C0KmtsV4KfrWNzII="
+
+  # ── GDPR Compliance ──────────────────────────────────────────────────────────
+  gdpr:
+    data-retention-days: 2555   # 7 years (financial/medical compliance)
+    audit-retention-days: 2555
+    policy-version: "1.0.0"
   kafka:
     topics:
       document-processed: smartlife.document.processed

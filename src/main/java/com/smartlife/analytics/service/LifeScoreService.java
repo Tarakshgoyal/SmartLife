@@ -1,11 +1,15 @@
 package com.smartlife.analytics.service;
 
 import com.smartlife.analytics.dto.LifeScoreDto;
+import com.smartlife.config.OllamaService;
 import com.smartlife.expense.repository.BudgetRepository;
 import com.smartlife.expense.repository.ExpenseRepository;
 import com.smartlife.health.repository.HealthLogRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,11 +27,16 @@ import java.util.*;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LifeScoreService {
 
     private final ExpenseRepository expenseRepository;
     private final BudgetRepository budgetRepository;
     private final HealthLogRepository healthLogRepository;
+
+    @Lazy
+    @Autowired
+    private OllamaService ollamaService;
 
     @Transactional(readOnly = true)
     @Cacheable(value = "lifeScore", key = "#userId")
@@ -53,8 +62,25 @@ public class LifeScoreService {
         List<String> recommendations = buildRecommendations(
                 financialScore, physicalScore, mentalScore, organisationScore);
 
+        // ── Llama 3.2 AI coaching summary ───────────────────────────────────
+        String aiCoachingSummary = null;
+        try {
+            aiCoachingSummary = ollamaService.generate(
+                "You are a personal life coach. Based on the user life score breakdown, provide a motivating 2-3 sentence summary with the most important advice. Be specific, warm, and actionable.",
+                "Life score breakdown:\n" +
+                "- Financial Health: " + financialScore + "/100\n" +
+                "- Physical Health: " + physicalScore + "/100\n" +
+                "- Mental Wellbeing: " + mentalScore + "/100\n" +
+                "- Life Organisation: " + organisationScore + "/100\n" +
+                "- Overall: " + overall + "/100 (Grade " + LifeScoreDto.gradeFor(overall) + ")\n" +
+                "Rule-based recommendations: " + recommendations
+            );
+        } catch (Exception e) {
+            log.debug("AI life score coaching skipped: {}", e.getMessage());
+        }
+
         return new LifeScoreDto(overall, breakdown, LifeScoreDto.gradeFor(overall),
-                "STABLE", recommendations);
+                "STABLE", recommendations, aiCoachingSummary);
     }
 
     // ── Dimension scorers ─────────────────────────────────────────────────────

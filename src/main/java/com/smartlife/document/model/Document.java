@@ -1,6 +1,8 @@
 package com.smartlife.document.model;
 
 import com.smartlife.auth.model.User;
+import com.smartlife.security.encryption.FieldEncryptor;
+import com.smartlife.security.gdpr.Sensitive;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -41,10 +43,15 @@ public class Document {
     @Column(nullable = false, name = "document_type")
     private DocumentType type;
 
+    // OCR text — encrypted because documents may contain PII (passport numbers, medical data, etc.)
+    @Sensitive(strategy = Sensitive.MaskingStrategy.FULL, label = "Document OCR Text")
+    @Convert(converter = FieldEncryptor.class)
     @Column(columnDefinition = "TEXT")
     private String extractedText;
 
-    // Key-value pairs extracted by NER (stored as JSON string)
+    // Key-value pairs extracted by NER — encrypted (may contain names, IDs, amounts)
+    @Sensitive(strategy = Sensitive.MaskingStrategy.FULL, label = "Extracted Entities")
+    @Convert(converter = FieldEncryptor.class)
     @Column(columnDefinition = "TEXT")
     private String extractedEntities;
 
@@ -58,6 +65,8 @@ public class Document {
     @Column(length = 255)
     private String title;
 
+    @Sensitive(strategy = Sensitive.MaskingStrategy.FULL, label = "Document Notes")
+    @Convert(converter = FieldEncryptor.class)
     @Column(length = 500)
     private String notes;
 

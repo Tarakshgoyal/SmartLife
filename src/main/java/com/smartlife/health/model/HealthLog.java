@@ -1,6 +1,8 @@
 package com.smartlife.health.model;
 
 import com.smartlife.auth.model.User;
+import com.smartlife.security.encryption.FieldEncryptor;
+import com.smartlife.security.gdpr.Sensitive;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -53,17 +55,23 @@ public class HealthLog {
     private Integer exerciseMinutes;
     private String exerciseType;
 
-    // Symptoms (comma-separated)
+    // Symptoms (comma-separated) — medical PII, encrypted at rest
+    @Sensitive(strategy = Sensitive.MaskingStrategy.MEDICAL, label = "Symptoms")
+    @Convert(converter = FieldEncryptor.class)
     @Column(columnDefinition = "TEXT")
     private String symptoms;
 
-    // Medications taken (comma-separated)
+    // Medications taken (comma-separated) — medical PII, encrypted at rest
+    @Sensitive(strategy = Sensitive.MaskingStrategy.MEDICAL, label = "Medications")
+    @Convert(converter = FieldEncryptor.class)
     @Column(columnDefinition = "TEXT")
     private String medications;
 
     // Water intake (glasses)
     private Integer waterIntake;
 
+    @Sensitive(strategy = Sensitive.MaskingStrategy.FULL, label = "Health Notes")
+    @Convert(converter = FieldEncryptor.class)
     @Column(length = 1000)
     private String notes;
 

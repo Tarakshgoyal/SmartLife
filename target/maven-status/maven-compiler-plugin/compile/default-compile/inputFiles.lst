@@ -34,10 +34,16 @@ C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\cleve
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\automation\service\NotificationService.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\automation\service\ReminderService.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\automation\websocket\WebSocketNotificationService.java
+C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\chat\controller\ChatController.java
+C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\chat\dto\ChatMessageDto.java
+C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\chat\dto\ChatRequest.java
+C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\chat\dto\ChatResponse.java
+C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\chat\service\ChatService.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\common\dto\ApiResponse.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\common\exception\GlobalExceptionHandler.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\common\exception\SmartLifeException.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\config\KafkaConfig.java
+C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\config\OllamaService.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\config\OpenApiConfig.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\config\RedisConfig.java
 C:\Users\Taraksh Goyal\Desktop\coding\PROJECTS\SmartLife\.claude\worktrees\clever-chatterjee\PROJECTS\SmartLife\src\main\java\com\smartlife\config\SecurityConfig.java

@@ -1,6 +1,8 @@
 package com.smartlife.expense.model;
 
 import com.smartlife.auth.model.User;
+import com.smartlife.security.encryption.FieldEncryptor;
+import com.smartlife.security.gdpr.Sensitive;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,10 +34,16 @@ public class Expense {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false, length = 255)
+    // Description may contain sensitive purchase details — encrypted
+    @Sensitive(strategy = Sensitive.MaskingStrategy.PARTIAL, label = "Expense Description")
+    @Convert(converter = FieldEncryptor.class)
+    @Column(nullable = false, length = 500)
     private String description;
 
-    @Column(length = 255)
+    // Merchant name encrypted — reveals spending patterns (financial PII)
+    @Sensitive(strategy = Sensitive.MaskingStrategy.PARTIAL, label = "Merchant Name")
+    @Convert(converter = FieldEncryptor.class)
+    @Column(length = 500)
     private String merchant;
 
     @Enumerated(EnumType.STRING)

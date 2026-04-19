@@ -1,5 +1,6 @@
 package com.smartlife.auth.model;
 
+import com.smartlife.security.gdpr.Sensitive;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -23,9 +24,11 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Sensitive(strategy = Sensitive.MaskingStrategy.EMAIL, label = "Email Address")
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
+    @Sensitive(strategy = Sensitive.MaskingStrategy.PARTIAL, label = "Full Name")
     @Column(nullable = false, length = 100)
     private String fullName;
 

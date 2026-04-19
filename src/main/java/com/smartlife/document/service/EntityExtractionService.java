@@ -1,7 +1,10 @@
 package com.smartlife.document.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartlife.config.OllamaService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -25,6 +28,10 @@ import java.util.regex.Pattern;
 public class EntityExtractionService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    @Lazy
+    @Autowired
+    private OllamaService ollamaService;
 
     // Date patterns common in Indian documents
     private static final List<DateTimeFormatter> DATE_FORMATTERS = List.of(
@@ -97,6 +104,31 @@ public class EntityExtractionService {
         List<String> phones = extractAll(PHONE_PATTERN, text, 0);
         if (!phones.isEmpty()) {
             entities.put("phones", phones);
+        }
+
+        // ── Llama 3.2 enhanced entity extraction ────────────────────────────
+        try {
+            String snippet = text.length() > 600 ? text.substring(0, 600) : text;
+            String aiJson = ollamaService.generate(
+                "You are a document entity extractor. Extract key entities from the document text and return ONLY valid JSON. " +
+                "Include fields: summary (1 sentence), keyEntities (list of important names/orgs), documentPurpose (string). " +
+                "Return only the JSON object, no explanation.",
+                "Document text:\n" + snippet
+            );
+            if (aiJson != null) {
+                // Clean response — LLMs sometimes wrap in markdown
+                String cleaned = aiJson.replaceAll("```json", "").replaceAll("```", "").trim();
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> aiEntities = MAPPER.readValue(cleaned, Map.class);
+                    entities.putAll(aiEntities);
+                } catch (Exception parseEx) {
+                    // AI returned non-JSON text — store as raw summary
+                    entities.put("aiSummary", aiJson.trim());
+                }
+            }
+        } catch (Exception e) {
+            log.debug("AI entity extraction skipped: {}", e.getMessage());
         }
 
         return new ExtractionResult(entities, expiryDate, issueDate);

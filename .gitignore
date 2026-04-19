@@ -1,0 +1,31 @@
+# Maven
+target/
+*.class
+*.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Uploads & ML models
+uploads/
+ml-models/
+tessdata/
+
+# Logs
+*.log
+logs/
+
+# ⚠️ NEVER commit this file if it contains real secrets
+# application.yml contains smartlife.encryption.master-key
+# Use environment variables in production
+# src/main/resources/application.yml
+
+# Application secrets (if you split them out)
+application-secrets.yml
+application-prod.yml
+
+# Docker volumes
+postgres-data/
+redis-data/

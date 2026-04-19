@@ -1,47 +1,33 @@
-# ── Stage 1: Build ──────────────────────────────────────────────────────────
+# ─── Stage 1: Build ───────────────────────────────────────────────
 FROM eclipse-temurin:21-jdk-alpine AS builder
+WORKDIR /build
 
-WORKDIR /app
-
-# Copy Maven wrapper and pom first (layer cache for deps)
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
-
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -q
-
-# Copy source and build
+COPY pom.xml .
 COPY src ./src
-RUN ./mvnw package -DskipTests -q
 
-# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM eclipse-temurin:21-jre-alpine AS runtime
+# Download dependencies and build (skip tests — they need live infra)
+RUN apk add --no-cache maven && \
+    mvn -q -DskipTests package
 
-LABEL org.opencontainers.image.title="SmartLife Hub"
-LABEL org.opencontainers.image.description="AI-Powered Personal Life Management Platform"
-
-# Non-root user for security
-RUN addgroup -S smartlife && adduser -S smartlife -G smartlife
-
+# ─── Stage 2: Runtime ─────────────────────────────────────────────
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copy the fat JAR
-COPY --from=builder /app/target/*.jar app.jar
-
-# Create required runtime directories
-RUN mkdir -p uploads tessdata ml-models \
-    && chown -R smartlife:smartlife /app
-
-# Install Tesseract for OCR
+# Tessdata for OCR
 RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-eng
 
-USER smartlife
+# Create directories for uploads and ML models
+RUN mkdir -p /app/uploads /app/ml-models /app/tessdata
 
-EXPOSE 8080
+# Copy tessdata
+RUN cp -r /usr/share/tessdata/* /app/tessdata/ 2>/dev/null || true
 
-# JVM tuning for containers (Java 21 virtual threads)
-ENV JAVA_OPTS="-XX:+UseContainerSupport \
-               -XX:MaxRAMPercentage=75.0 \
-               -XX:+UseG1GC \
-               -Djava.security.egd=file:/dev/./urandom"
+COPY --from=builder /build/target/*.jar app.jar
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
+EXPOSE 9090
+ENTRYPOINT ["java", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-Dsmartlife.storage.upload-dir=/app/uploads", \
+  "-Dsmartlife.ml.models-dir=/app/ml-models", \
+  "-Dsmartlife.ocr.tessdata-path=/app/tessdata", \
+  "-jar", "app.jar"]

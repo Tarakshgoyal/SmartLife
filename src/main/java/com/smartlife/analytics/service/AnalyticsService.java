@@ -4,13 +4,16 @@ import com.smartlife.analytics.dto.DashboardDto;
 import com.smartlife.auth.model.User;
 import com.smartlife.automation.repository.ReminderRepository;
 import com.smartlife.automation.service.NotificationService;
+import com.smartlife.config.OllamaService;
 import com.smartlife.document.repository.DocumentRepository;
 import com.smartlife.expense.repository.ExpenseRepository;
 import com.smartlife.health.model.HealthLog;
 import com.smartlife.health.repository.HealthLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,10 @@ public class AnalyticsService {
     private final HealthLogRepository healthLogRepository;
     private final ReminderRepository reminderRepository;
     private final NotificationService notificationService;
+
+    @Lazy
+    @Autowired
+    private OllamaService ollamaService;
 
     @Transactional(readOnly = true)
     @Cacheable(value = "dashboard", key = "#user.id", unless = "#result == null")
@@ -90,6 +97,28 @@ public class AnalyticsService {
         List<NotificationService.Notification> recentNotifications =
                 notificationService.getNotifications(user.getId()).stream().limit(5).toList();
 
+        // ── Llama 3.2 daily briefing ─────────────────────────────────────────
+        String aiDailyBriefing = null;
+        try {
+            String briefingPrompt = "User: " + user.getFullName() + "\n" +
+                "Today's date: " + now + "\n" +
+                "Spending this month: Rs." + (thisMonthSpend != null ? thisMonthSpend : 0) +
+                " (last month: Rs." + (lastMonthSpend != null ? lastMonthSpend : 0) + ")\n" +
+                "Anomalous expenses: " + anomalyCount + "\n" +
+                "Avg sleep (7 days): " + (avgSleep != null ? String.format("%.1f", avgSleep) + "h" : "no data") + "\n" +
+                "Avg mood (7 days): " + (avgMood != null ? String.format("%.1f", avgMood) + "/10" : "no data") + "\n" +
+                "Documents expiring soon: " + expiringSummaries.size() + "\n" +
+                "Pending reminders: " + pendingReminders;
+
+            aiDailyBriefing = ollamaService.generate(
+                "You are a personal AI life assistant. Write a warm, concise daily briefing (3-4 sentences) " +
+                "for the user based on their life data. Highlight the most important thing to focus on today.",
+                briefingPrompt
+            );
+        } catch (Exception e) {
+            log.debug("AI dashboard briefing skipped: {}", e.getMessage());
+        }
+
         return new DashboardDto(
                 user.getFullName(),
                 totalDocs, expiringSummaries.size(), expiringSummaries,
@@ -97,7 +126,7 @@ public class AnalyticsService {
                 lastMonthSpend != null ? lastMonthSpend : BigDecimal.ZERO,
                 topCategories, anomalyCount,
                 avgSleep, avgMood, healthLogsThisMonth,
-                pendingReminders, recentNotifications
+                pendingReminders, recentNotifications, aiDailyBriefing
         );
     }
 }

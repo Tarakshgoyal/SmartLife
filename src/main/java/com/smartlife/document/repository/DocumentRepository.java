@@ -41,4 +41,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     @Query("SELECT d FROM Document d WHERE d.expiryDate BETWEEN :from AND :to AND d.processed = true")
     List<Document> findAllExpiringDocuments(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    // GDPR: bulk deletion
+    void deleteByUserId(UUID userId);
 }

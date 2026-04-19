@@ -17,6 +17,7 @@ com\smartlife\automation\dto\ReminderDto.class
 com\smartlife\automation\model\ReminderType.class
 com\smartlife\common\dto\ApiResponse$ApiResponseBuilder.class
 com\smartlife\expense\model\Expense.class
+com\smartlife\chat\controller\ChatController.class
 com\smartlife\common\exception\SmartLifeException.class
 com\smartlife\health\service\HealthService$HealthAlertEvent.class
 com\smartlife\expense\dto\BudgetDto.class
@@ -33,6 +34,7 @@ com\smartlife\expense\dto\BudgetCreateRequest.class
 com\smartlife\auth\controller\AuthController.class
 com\smartlife\expense\dto\ReceiptScanResultDto.class
 com\smartlife\document\dto\DocumentUploadResponse.class
+com\smartlife\config\OllamaService.class
 com\smartlife\expense\service\ExpenseCategoryClassifier.class
 com\smartlife\automation\model\Reminder.class
 com\smartlife\automation\model\Reminder$ReminderBuilder.class
@@ -57,6 +59,7 @@ com\smartlife\health\service\HealthPatternAnalyzer$HealthWarning.class
 com\smartlife\document\service\OcrService.class
 com\smartlife\automation\controller\AutomationController.class
 com\smartlife\expense\model\Subscription$SubscriptionBuilder.class
+com\smartlife\chat\dto\ChatMessageDto.class
 com\smartlife\health\model\HealthLog.class
 com\smartlife\auth\dto\UserProfileDto.class
 com\smartlife\expense\dto\SpendingPredictionDto.class
@@ -78,6 +81,7 @@ com\smartlife\analytics\service\AnalyticsService.class
 com\smartlife\expense\repository\BudgetRepository.class
 com\smartlife\expense\service\SubscriptionDetectionService.class
 com\smartlife\expense\dto\BudgetStatusDto.class
+com\smartlife\chat\dto\ChatRequest.class
 com\smartlife\expense\ml\TribuoExpenseClassifier$TrainingExample.class
 com\smartlife\analytics\service\LifeReportService.class
 com\smartlife\auth\dto\RefreshTokenRequest.class
@@ -97,8 +101,10 @@ com\smartlife\automation\service\NotificationService$Notification.class
 com\smartlife\document\dto\MedicalReportDto$LabValue.class
 com\smartlife\document\service\EntityExtractionService$ExtractionResult.class
 com\smartlife\automation\repository\ReminderRepository.class
+com\smartlife\chat\service\ChatService.class
 com\smartlife\document\search\DocumentSearchRepository.class
 com\smartlife\SmartLifeApplication.class
+com\smartlife\config\OllamaService$ChatMessage.class
 com\smartlife\config\OpenApiConfig.class
 com\smartlife\automation\service\ReminderService.class
 com\smartlife\health\dto\HealthLogRequest.class
@@ -111,8 +117,11 @@ com\smartlife\automation\service\ReminderService$ReminderTriggeredEvent.class
 com\smartlife\expense\controller\ExpenseController.class
 com\smartlife\expense\repository\SubscriptionRepository.class
 com\smartlife\analytics\controller\ReportController.class
+com\smartlife\chat\dto\ChatResponse.class
 com\smartlife\health\service\HealthService.class
 com\smartlife\document\repository\DocumentRepository.class
 com\smartlife\document\service\MedicalDocumentParser.class
 com\smartlife\expense\ml\TribuoExpenseClassifier.class
 com\smartlife\expense\repository\ExpenseRepository$CategoryTotal.class
+com\smartlife\config\OllamaService$ChatResponse.class
+com\smartlife\config\OllamaService$GenerateResponse.class

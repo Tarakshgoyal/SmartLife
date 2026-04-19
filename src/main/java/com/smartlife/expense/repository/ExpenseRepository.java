@@ -55,6 +55,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
 
     Optional<Expense> findByIdAndUserId(UUID id, UUID userId);
 
+    // GDPR: bulk deletion
+    void deleteByUserId(UUID userId);
+
     // Projection for category totals
     interface CategoryTotal {
         ExpenseCategory getCategory();

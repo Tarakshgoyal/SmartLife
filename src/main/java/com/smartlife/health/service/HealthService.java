@@ -2,11 +2,14 @@ package com.smartlife.health.service;
 
 import com.smartlife.auth.model.User;
 import com.smartlife.common.exception.SmartLifeException;
+import com.smartlife.config.OllamaService;
 import com.smartlife.health.dto.*;
 import com.smartlife.health.model.HealthLog;
 import com.smartlife.health.repository.HealthLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -26,6 +29,10 @@ public class HealthService {
     private final HealthLogRepository healthLogRepository;
     private final HealthPatternAnalyzer patternAnalyzer;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Lazy
+    @Autowired
+    private OllamaService ollamaService;
 
     @Transactional
     public HealthLogDto logHealth(HealthLogRequest request, User user) {
@@ -79,13 +86,43 @@ public class HealthService {
         LocalDate from = LocalDate.now().minusDays(days);
         List<HealthLog> logs = healthLogRepository.findByUserAndDateRange(userId, from, LocalDate.now());
 
-        Double avgSleep = healthLogRepository.getAvgSleepHours(userId, from);
-        Double avgMood = healthLogRepository.getAvgMoodScore(userId, from);
+        Double avgSleep  = healthLogRepository.getAvgSleepHours(userId, from);
+        Double avgMood   = healthLogRepository.getAvgMoodScore(userId, from);
         Double avgWeight = healthLogRepository.getAvgWeight(userId, from);
 
         List<HealthPatternAnalyzer.HealthWarning> trendWarnings = patternAnalyzer.analyzeTrend(logs);
 
-        return new HealthInsightsDto(days, logs.size(), avgSleep, avgMood, avgWeight, trendWarnings);
+        // ── Llama 3.2 AI summary ────────────────────────────────────────────
+        String aiSummary = null;
+        try {
+            String prompt = buildHealthInsightPrompt(days, logs.size(), avgSleep, avgMood, avgWeight, trendWarnings);
+            aiSummary = ollamaService.generate(
+                "You are a health coach. Provide concise, empathetic health insights based on the user data. " +
+                "Keep it under 120 words. Be specific and actionable.",
+                prompt
+            );
+        } catch (Exception e) {
+            log.debug("Ollama health insight generation skipped: {}", e.getMessage());
+        }
+
+        return new HealthInsightsDto(days, logs.size(), avgSleep, avgMood, avgWeight, trendWarnings, aiSummary);
+    }
+
+    private String buildHealthInsightPrompt(int days, int logCount, Double avgSleep,
+                                             Double avgMood, Double avgWeight,
+                                             List<HealthPatternAnalyzer.HealthWarning> warnings) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Health data for the past ").append(days).append(" days:\n");
+        sb.append("- Logged ").append(logCount).append(" entries\n");
+        if (avgSleep  != null) sb.append("- Average sleep: ").append(String.format("%.1f", avgSleep)).append(" hours\n");
+        if (avgMood   != null) sb.append("- Average mood score: ").append(String.format("%.1f", avgMood)).append("/10\n");
+        if (avgWeight != null) sb.append("- Average weight: ").append(String.format("%.1f", avgWeight)).append(" kg\n");
+        if (!warnings.isEmpty()) {
+            sb.append("- Warnings detected:\n");
+            warnings.forEach(w -> sb.append("  * [").append(w.level()).append("] ").append(w.title()).append(": ").append(w.message()).append("\n"));
+        }
+        sb.append("\nProvide a personalised health summary and 2-3 specific recommendations.");
+        return sb.toString();
     }
 
     @Transactional(readOnly = true)

@@ -1,9 +1,13 @@
 package com.smartlife.document.service;
 
+import com.smartlife.config.OllamaService;
 import com.smartlife.document.model.DocumentType;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,6 +20,10 @@ import java.util.Map;
 @Service
 @Slf4j
 public class DocumentClassificationService {
+
+    @Lazy
+    @Autowired
+    private OllamaService ollamaService;
 
     private static final Map<DocumentType, String[]> KEYWORD_MAP = new HashMap<>();
 
@@ -85,11 +93,46 @@ public class DocumentClassificationService {
 
         // Require at least 2 keyword matches to confidently classify
         if (maxScore < 2) {
+            // ── Llama 3.2 fallback for ambiguous documents ─────────────────
+            DocumentClassificationResult aiResult = classifyWithAi(text);
+            if (aiResult != null) return aiResult;
             return new DocumentClassificationResult(DocumentType.UNKNOWN, confidence);
         }
 
         log.debug("Classified document as {} with confidence {}", best, confidence);
         return new DocumentClassificationResult(best, Math.min(confidence, 1.0));
+    }
+
+    /**
+     * Uses Llama 3.2 to classify documents that keyword scoring couldn't identify.
+     */
+    private DocumentClassificationResult classifyWithAi(String text) {
+        try {
+            String snippet = text.length() > 800 ? text.substring(0, 800) : text;
+            String validTypes = Arrays.stream(DocumentType.values())
+                    .map(Enum::name)
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+
+            String aiResponse = ollamaService.generate(
+                "You are a document classifier. Reply with ONLY the document type from this list: " + validTypes +
+                ". Do not explain — just output one word from the list.",
+                "Classify this document text:\n\n" + snippet
+            );
+
+            if (aiResponse != null) {
+                String normalized = aiResponse.trim().toUpperCase().replaceAll("[^A-Z_]", "");
+                try {
+                    DocumentType aiType = DocumentType.valueOf(normalized);
+                    log.debug("AI classified document as {}", aiType);
+                    return new DocumentClassificationResult(aiType, 0.7);
+                } catch (IllegalArgumentException ignored) {
+                    // AI returned something invalid — fall through to UNKNOWN
+                }
+            }
+        } catch (Exception e) {
+            log.debug("AI document classification skipped: {}", e.getMessage());
+        }
+        return null;
     }
 
     public record DocumentClassificationResult(DocumentType type, double confidence) {}

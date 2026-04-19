@@ -1,6 +1,6 @@
-version: '3.9'
-
 services:
+
+  # ─────────────────── PostgreSQL ───────────────────
   postgres:
     image: postgres:16-alpine
     container_name: smartlife-postgres
@@ -11,29 +11,31 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U smartlife"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # ─────────────────── Redis ───────────────────
   redis:
     image: redis:7-alpine
     container_name: smartlife-redis
+    command: redis-server --requirepass redis123
     ports:
       - "6379:6379"
-    command: redis-server --requirepass redis123 --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
-      - redis_data:/data
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # ─────────────────── Zookeeper ───────────────────
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.7.1
+    image: confluentinc/cp-zookeeper:7.6.0
     container_name: smartlife-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -41,8 +43,9 @@ services:
     ports:
       - "2181:2181"
 
+  # ─────────────────── Kafka ───────────────────
   kafka:
-    image: confluentinc/cp-kafka:7.7.1
+    image: confluentinc/cp-kafka:7.6.0
     container_name: smartlife-kafka
     depends_on:
       - zookeeper
@@ -51,17 +54,15 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
+  # ─────────────────── Elasticsearch ───────────────────
   elasticsearch:
-    image: elasticsearch:8.16.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
     container_name: smartlife-elasticsearch
     environment:
       - discovery.type=single-node
@@ -70,14 +71,80 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
+      - es-data:/usr/share/elasticsearch/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
+      interval: 20s
       timeout: 10s
       retries: 5
 
+  # ─────────────────── Ollama (Llama 3.2 3B) ───────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: smartlife-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve &
+        SERVE_PID=$$!
+        sleep 8
+        echo "==> Pulling llama3.2:3b (first run may take several minutes)..."
+        ollama pull llama3.2:3b
+        echo "==> Llama 3.2 ready!"
+        wait $$SERVE_PID
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags | grep -q llama || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 20
+      start_period: 180s
+    # Uncomment for NVIDIA GPU acceleration:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # ─────────────────── SmartLife App ───────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartlife-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "9090:9090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartlife
+      SPRING_DATASOURCE_USERNAME: smartlife
+      SPRING_DATASOURCE_PASSWORD: smartlife123
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: redis123
+      SPRING_DATA_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SMARTLIFE_OLLAMA_BASE_URL: http://ollama:11434
+      SMARTLIFE_OLLAMA_MODEL: llama3.2:3b
+    volumes:
+      - app-uploads:/app/uploads
+      - app-models:/app/ml-models
+
 volumes:
-  postgres_data:
-  redis_data:
-  elasticsearch_data:
+  postgres-data:
+  redis-data:
+  es-data:
+  ollama-data:
+  app-uploads:
+  app-models:
