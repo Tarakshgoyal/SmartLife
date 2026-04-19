@@ -60,9 +60,12 @@
         </dependency>
 
         <!-- ===== AOP (for GDPR interceptor + Audit Trail) ===== -->
+        <!-- spring-boot-starter-aop was removed in Spring Boot 4.x;
+             spring-aop is already included transitively via spring-boot-starter-web.
+             We only need aspectjweaver on the classpath for @Aspect / @Around to work. -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
