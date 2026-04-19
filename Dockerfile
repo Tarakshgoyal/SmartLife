@@ -1,13 +1,15 @@
 # ─── Stage 1: Build ───────────────────────────────────────────────
-FROM eclipse-temurin:21-jdk-alpine AS builder
+# Use the official Maven image (comes with JDK 21 + Maven pre-configured — no apk conflicts)
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 WORKDIR /build
 
+# Cache dependencies separately so code changes don't re-download everything
 COPY pom.xml .
-COPY src ./src
+RUN mvn -q dependency:go-offline -DskipTests
 
-# Download dependencies and build (skip tests — they need live infra)
-RUN apk add --no-cache maven && \
-    mvn -q -DskipTests package
+# Build the application (skip tests — they require live infrastructure)
+COPY src ./src
+RUN mvn -q -DskipTests package
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
