@@ -1,8 +1,5 @@
 package com.smartlife.security.gdpr;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -17,11 +14,8 @@ import java.util.Map;
  * business logic runs — service and repository layers always work with full data.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class DataMaskingService {
-
-    private final ObjectMapper objectMapper;
 
     /**
      * Apply masking to all @Sensitive fields in the given object.

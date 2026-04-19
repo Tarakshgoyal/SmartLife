@@ -97,11 +97,14 @@ services:
         echo "==> Llama 3.2 ready!"
         wait $$SERVE_PID
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags | grep -q llama || exit 1"]
-      interval: 30s
-      timeout: 15s
-      retries: 20
-      start_period: 180s
+      # Just verify Ollama's HTTP server is up — the model pull happens in the background
+      # and can take 5-15 min on first run. The Spring app degrades gracefully if the
+      # model isn't ready yet and retries on each request.
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     # Uncomment for NVIDIA GPU acceleration:
     # deploy:
     #   resources:
@@ -123,7 +126,7 @@ services:
       redis:
         condition: service_healthy
       ollama:
-        condition: service_healthy
+        condition: service_healthy   # waits for Ollama HTTP server (not model download)
     ports:
       - "9090:9090"
     environment:

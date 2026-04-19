@@ -1,6 +1,5 @@
 package com.smartlife.security.gdpr;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartlife.auth.model.User;
 import com.smartlife.auth.repository.UserRepository;
 import com.smartlife.document.repository.DocumentRepository;
@@ -34,7 +33,6 @@ public class GDPRService {
     private final DocumentRepository documentRepository;
     private final ConsentRepository consentRepository;
     private final EncryptionKeyManager keyManager;
-    private final ObjectMapper objectMapper;
 
     // ─── Right to Erasure ────────────────────────────────────────────────────
 

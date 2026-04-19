@@ -1,5 +1,8 @@
 package com.smartlife.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
@@ -7,7 +10,9 @@ import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 @OpenAPIDefinition(
@@ -44,5 +49,17 @@ import org.springframework.context.annotation.Configuration;
         description = "Enter JWT token obtained from POST /api/v1/auth/login"
 )
 public class OpenApiConfig {
-    // Bean-free — all configuration via annotations
+
+    /**
+     * Expose a primary ObjectMapper bean — Spring Boot 4.x no longer auto-registers
+     * one as a general-purpose injectable bean; we define it explicitly here so any
+     * service that needs JSON serialisation can @Autowired / constructor-inject it.
+     */
+    @Bean
+    @Primary
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 }
