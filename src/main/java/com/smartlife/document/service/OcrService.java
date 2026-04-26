@@ -23,22 +23,37 @@ public class OcrService {
 
     private final Tesseract tesseract;
 
+    private boolean tesseractAvailable = false;
+
     public OcrService(@Value("${smartlife.ocr.tessdata-path}") String tessdataPath,
                       @Value("${smartlife.ocr.language}") String language) {
         this.tesseract = new Tesseract();
-        this.tesseract.setDatapath(tessdataPath);
-        this.tesseract.setLanguage(language);
-        this.tesseract.setOcrEngineMode(1);  // LSTM neural net mode
-        this.tesseract.setPageSegMode(3);    // Fully automatic page segmentation
+        try {
+            this.tesseract.setDatapath(tessdataPath);
+            this.tesseract.setLanguage(language);
+            this.tesseract.setOcrEngineMode(1);  // LSTM neural net mode
+            this.tesseract.setPageSegMode(3);    // Fully automatic page segmentation
+            tesseractAvailable = true;
+            log.info("Tesseract OCR initialised from: {}", tessdataPath);
+        } catch (Exception e) {
+            log.warn("Tesseract OCR unavailable (tessdata not found at '{}'). Documents will be saved without OCR text.", tessdataPath);
+        }
     }
 
     public String extractText(Path filePath) {
+        if (!tesseractAvailable) {
+            log.debug("OCR skipped — Tesseract not configured.");
+            return "";
+        }
         String fileName = filePath.getFileName().toString().toLowerCase();
-
+        // Only run OCR on image and PDF files; silently skip other types (docx, etc.)
         if (fileName.endsWith(".pdf")) {
             return extractFromPdf(filePath.toFile());
-        } else {
+        } else if (fileName.matches(".*\\.(png|jpg|jpeg|gif|bmp|tiff|tif|webp)$")) {
             return extractFromImage(filePath.toFile());
+        } else {
+            log.debug("OCR skipped for non-image/PDF file: {}", fileName);
+            return "";
         }
     }
 

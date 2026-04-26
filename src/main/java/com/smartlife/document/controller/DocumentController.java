@@ -105,7 +105,7 @@ public class DocumentController {
      * The document must already be uploaded and OCR-processed.
      */
     @Operation(summary = "Parse an OCR-processed medical/lab report and extract lab values")
-    @GetMapping("/{id}/medical-parse")
+    @PostMapping("/{id}/medical-parse")
     public ResponseEntity<ApiResponse<MedicalReportDto>> parseMedical(
             @PathVariable UUID id,
             @AuthenticationPrincipal User user) {

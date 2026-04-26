@@ -2,4 +2,4 @@ package com.smartlife.document.dto;
 
 import java.util.UUID;
 
-public record DocumentUploadResponse(UUID documentId, String title, String message) {}
+public record DocumentUploadResponse(UUID id, String title, String message) {}

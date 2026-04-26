@@ -52,17 +52,20 @@ public class DocumentService {
     public DocumentUploadResponse uploadDocument(MultipartFile file, String title,
                                                   String notes, User user) throws IOException {
         validateFile(file);
+        String originalName = safeOriginalFilename(file);
+        String safeTitle = truncate(title != null ? title : originalName, 255);
+        String safeNotes = truncate(notes, 500);
 
         String storagePath = saveFile(file, user.getId());
 
         Document document = Document.builder()
                 .user(user)
-                .fileName(file.getOriginalFilename())
+                .fileName(truncate(originalName, 255))
                 .storagePath(storagePath)
                 .mimeType(file.getContentType())
                 .type(DocumentType.UNKNOWN)
-                .title(title != null ? title : file.getOriginalFilename())
-                .notes(notes)
+                .title(safeTitle)
+                .notes(safeNotes)
                 .build();
 
         documentRepository.save(document);
@@ -72,38 +75,45 @@ public class DocumentService {
         processDocumentAsync(document.getId(), storagePath);
 
         return new DocumentUploadResponse(document.getId(), document.getTitle(),
-                "Document uploaded. Processing in progress...");
+                "Document uploaded successfully. OCR processing in progress...");
     }
 
     @Async
     public void processDocumentAsync(UUID documentId, String storagePath) {
+        Document document = null;
         try {
-            Document document = documentRepository.findById(documentId)
+            document = documentRepository.findById(documentId)
                     .orElseThrow(() -> new SmartLifeException("Document not found", HttpStatus.NOT_FOUND));
 
-            // Step 1: OCR
+            // Step 1: OCR (empty string if Tesseract not available or file type not supported)
             String extractedText = ocrService.extractText(Paths.get(storagePath));
             document.setExtractedText(extractedText);
 
-            // Step 2: Classify
+            // Step 2: Classify (works even with empty text — returns UNKNOWN)
             DocumentClassificationService.DocumentClassificationResult result =
                     classificationService.classify(extractedText);
             document.setType(result.type());
             document.setClassificationConfidence(result.confidence());
 
-            // Step 3: Extract entities
-            EntityExtractionService.ExtractionResult extraction =
-                    entityExtractionService.extract(extractedText);
-            document.setExtractedEntities(entityExtractionService.toJson(extraction.entities()));
-            document.setExpiryDate(extraction.expiryDate());
-            document.setIssueDate(extraction.issueDate());
+            // Step 3: Extract entities (skips gracefully on empty text)
+            if (extractedText != null && !extractedText.isBlank()) {
+                EntityExtractionService.ExtractionResult extraction =
+                        entityExtractionService.extract(extractedText);
+                document.setExtractedEntities(entityExtractionService.toJson(extraction.entities()));
+                document.setExpiryDate(extraction.expiryDate());
+                document.setIssueDate(extraction.issueDate());
+            }
 
             document.setProcessed(true);
             document.setProcessedAt(LocalDateTime.now());
             documentRepository.save(document);
 
             // Index in Elasticsearch for full-text search
-            documentIndexingService.indexDocument(document);
+            try {
+                documentIndexingService.indexDocument(document);
+            } catch (Exception e) {
+                log.warn("Elasticsearch indexing failed for document {}: {}", documentId, e.getMessage());
+            }
 
             // Publish event for automation engine
             try {
@@ -114,10 +124,20 @@ public class DocumentService {
                 log.warn("Kafka unavailable — document event not published: {}", e.getMessage());
             }
 
-            log.info("Document {} processed: type={}, expiry={}", documentId, result.type(), extraction.expiryDate());
+            log.info("Document {} processed: type={}, expiry={}", documentId, result.type(), document.getExpiryDate());
 
         } catch (Exception e) {
             log.error("Failed to process document {}", documentId, e);
+            // Ensure document is at least marked as processed (avoids stuck-in-pending state)
+            if (document != null) {
+                try {
+                    document.setProcessed(true);
+                    document.setProcessedAt(LocalDateTime.now());
+                    documentRepository.save(document);
+                } catch (Exception saveEx) {
+                    log.error("Could not mark document {} as processed after failure", documentId, saveEx);
+                }
+            }
         }
     }
 
@@ -163,13 +183,29 @@ public class DocumentService {
         log.info("Document {} deleted by user {}", documentId, userId);
     }
 
+    private static final java.util.Set<String> ALLOWED_MIME_TYPES = java.util.Set.of(
+            "application/pdf",
+            "application/msword",                                                          // .doc
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",    // .docx
+            "application/vnd.ms-excel",                                                   // .xls
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",          // .xlsx
+            "text/plain"
+    );
+
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new SmartLifeException("File is empty", HttpStatus.BAD_REQUEST);
         }
         String contentType = file.getContentType();
-        if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-            throw new SmartLifeException("Only image and PDF files are supported", HttpStatus.BAD_REQUEST);
+        if (contentType == null) {
+            throw new SmartLifeException("Could not determine file type", HttpStatus.BAD_REQUEST);
+        }
+        // Accept all images, PDFs, and common Office document formats
+        boolean allowed = contentType.startsWith("image/") || ALLOWED_MIME_TYPES.contains(contentType);
+        if (!allowed) {
+            throw new SmartLifeException(
+                    "Unsupported file type: " + contentType + ". Accepted: images, PDF, Word, Excel, text.",
+                    HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -177,7 +213,7 @@ public class DocumentService {
         Path userDir = Paths.get(uploadDir, userId.toString(), "documents");
         Files.createDirectories(userDir);
 
-        String ext = getExtension(file.getOriginalFilename());
+        String ext = getExtension(safeOriginalFilename(file));
         String fileName = UUID.randomUUID() + ext;
         Path filePath = userDir.resolve(fileName);
 
@@ -188,6 +224,18 @@ public class DocumentService {
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
         return filename.substring(filename.lastIndexOf("."));
+    }
+
+    private String safeOriginalFilename(MultipartFile file) {
+        String original = file.getOriginalFilename();
+        if (original == null || original.isBlank()) return "upload.bin";
+        return original.trim();
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null) return null;
+        if (value.length() <= maxLength) return value;
+        return value.substring(0, maxLength);
     }
 
     public record DocumentProcessedEvent(UUID documentId, DocumentType type,
