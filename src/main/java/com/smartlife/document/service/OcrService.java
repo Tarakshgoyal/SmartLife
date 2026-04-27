@@ -29,14 +29,20 @@ public class OcrService {
                       @Value("${smartlife.ocr.language}") String language) {
         this.tesseract = new Tesseract();
         try {
+            // Verify tessdata file actually exists before marking available
+            java.io.File trainedData = new java.io.File(tessdataPath, language + ".traineddata");
+            if (!trainedData.exists()) {
+                log.warn("Tesseract OCR unavailable — tessdata not found at '{}'. Documents will be saved without OCR.", trainedData.getAbsolutePath());
+                return;
+            }
             this.tesseract.setDatapath(tessdataPath);
             this.tesseract.setLanguage(language);
-            this.tesseract.setOcrEngineMode(1);  // LSTM neural net mode
-            this.tesseract.setPageSegMode(3);    // Fully automatic page segmentation
+            this.tesseract.setOcrEngineMode(1);
+            this.tesseract.setPageSegMode(3);
             tesseractAvailable = true;
             log.info("Tesseract OCR initialised from: {}", tessdataPath);
-        } catch (Exception e) {
-            log.warn("Tesseract OCR unavailable (tessdata not found at '{}'). Documents will be saved without OCR text.", tessdataPath);
+        } catch (Throwable e) {
+            log.warn("Tesseract OCR unavailable: {}. Documents will be saved without OCR text.", e.getMessage());
         }
     }
 
@@ -61,8 +67,8 @@ public class OcrService {
         try {
             log.debug("Running OCR on image: {}", imageFile.getName());
             return tesseract.doOCR(imageFile).trim();
-        } catch (TesseractException e) {
-            log.error("OCR failed for image: {}", imageFile.getName(), e);
+        } catch (Throwable e) {
+            log.warn("OCR failed for image '{}': {}", imageFile.getName(), e.getMessage());
             return "";
         }
     }
@@ -75,20 +81,19 @@ public class OcrService {
 
             for (int page = 0; page < Math.min(pageCount, 10); page++) {
                 BufferedImage image = renderer.renderImageWithDPI(page, 300);
-                // Save temp image and OCR it
                 File tempImg = File.createTempFile("smartlife_ocr_", ".png");
                 try {
                     ImageIO.write(image, "PNG", tempImg);
                     String text = tesseract.doOCR(tempImg);
                     pageTexts.add(text);
-                } catch (TesseractException e) {
-                    log.warn("OCR failed for page {} of {}", page, pdfFile.getName());
+                } catch (Throwable e) {
+                    log.warn("OCR failed for page {} of '{}': {}", page, pdfFile.getName(), e.getMessage());
                 } finally {
                     tempImg.delete();
                 }
             }
         } catch (IOException e) {
-            log.error("Failed to process PDF: {}", pdfFile.getName(), e);
+            log.error("Failed to load PDF: {}", pdfFile.getName(), e);
         }
 
         return String.join("\n\n--- Page Break ---\n\n", pageTexts).trim();

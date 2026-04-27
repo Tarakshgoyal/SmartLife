@@ -1,6 +1,6 @@
 package com.smartlife.automation.service;
 
-import com.smartlife.document.service.DocumentService.DocumentProcessedEvent;
+import com.smartlife.document.service.DocumentProcessingService.DocumentProcessedEvent;
 import com.smartlife.expense.service.ExpenseService.ExpenseCreatedEvent;
 import com.smartlife.health.service.HealthService.HealthAlertEvent;
 import lombok.RequiredArgsConstructor;

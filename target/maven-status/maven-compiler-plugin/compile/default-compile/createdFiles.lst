@@ -15,6 +15,7 @@ com\smartlife\analytics\dto\WeeklyReportDto.class
 com\smartlife\config\SecurityConfig.class
 com\smartlife\security\encryption\FieldEncryptor.class
 com\smartlife\analytics\controller\AnalyticsController.class
+com\smartlife\document\service\DocumentProcessingService.class
 com\smartlife\automation\dto\ReminderDto.class
 com\smartlife\automation\model\ReminderType.class
 com\smartlife\common\dto\ApiResponse$ApiResponseBuilder.class
@@ -66,6 +67,7 @@ com\smartlife\health\service\HealthPatternAnalyzer.class
 com\smartlife\auth\service\AuthService.class
 com\smartlife\config\WebSocketConfig.class
 com\smartlife\health\model\HealthLog$HealthLogBuilder.class
+com\smartlife\document\service\DocumentProcessingService$DocumentProcessedEvent.class
 com\smartlife\health\service\HealthPatternAnalyzer$HealthWarning.class
 com\smartlife\document\service\OcrService.class
 com\smartlife\automation\controller\AutomationController.class
@@ -91,7 +93,6 @@ com\smartlife\security\audit\AuditLogRepository.class
 com\smartlife\automation\scheduler\ReminderScheduler.class
 com\smartlife\document\controller\DocumentController.class
 com\smartlife\analytics\service\LifeScoreService.class
-com\smartlife\document\service\DocumentService$DocumentProcessedEvent.class
 com\smartlife\health\repository\HealthLogRepository.class
 com\smartlife\analytics\service\AnalyticsService.class
 com\smartlife\expense\repository\BudgetRepository.class
