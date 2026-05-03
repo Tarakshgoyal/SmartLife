@@ -1,0 +1,42 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: SmartLife
+
+  datasource:
+    url: jdbc:h2:file:./data/smartlife;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+jwt:
+  secret: SmartLifeSecretKey2024VeryLongSecretForHMACSHA256
+  expiration: 86400000      # 24h in ms
+  refresh-expiration: 604800000  # 7d in ms
+
+app:
+  upload-dir: ./uploads
+  ollama-url: http://localhost:11434/api/generate
+  ollama-model: smartlife-medical
