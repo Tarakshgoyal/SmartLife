@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  smartlife-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartlife-backend
+    ports:
+      - "9090:9090"
+    environment:
+      # Override Ollama URL to reach host machine from inside container
+      APP_OLLAMA_URL: http://host.docker.internal:11434/api/generate
+    volumes:
+      # Persist uploaded files and H2 database outside the container
+      - smartlife-uploads:/app/uploads
+      - smartlife-data:/app/data
+    restart: unless-stopped
+    extra_hosts:
+      # Allows container to reach host's Ollama on Linux too
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  smartlife-uploads:
+  smartlife-data:
